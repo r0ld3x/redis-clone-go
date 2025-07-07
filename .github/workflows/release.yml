@@ -1,12 +1,12 @@
 name: Build and Release
 
 on:
-  push:
-    tags:
-      - "v*"
+  release:
+    types: [created]
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   build:
@@ -55,4 +55,4 @@ jobs:
         with:
           files: goredis-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.binary_suffix }}
         env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN  }}
