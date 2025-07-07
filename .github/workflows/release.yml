@@ -1,40 +1,58 @@
-name: Go Release
+name: Build and Release
 
 on:
   push:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+
 jobs:
-  releases-matrix:
-    name: Release Go Binary
+  build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        goos: [linux, windows, darwin, freebsd]
-        goarch: [amd64, arm64, arm, 386]
-        exclude:
-          - goarch: arm
-            goos: windows
-          - goarch: arm
-            goos: darwin
-          - goarch: 386
-            goos: darwin
-          - goarch: arm
-            goos: freebsd
-          - goarch: 386
-            goos: freebsd
+        include:
+          - goos: windows
+            goarch: amd64
+            binary_suffix: ".exe"
+          - goos: windows
+            goarch: arm64
+            binary_suffix: ".exe"
+          - goos: linux
+            goarch: amd64
+            binary_suffix: ""
+          - goos: linux
+            goarch: arm64
+            binary_suffix: ""
+          - goos: darwin
+            goarch: amd64
+            binary_suffix: ""
+          - goos: darwin
+            goarch: arm64
+            binary_suffix: ""
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - uses: wangyoucao577/go-release-action@v1.51
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          github_token: ${{ secrets.TOKEN }}
-          goos: ${{ matrix.goos }}
-          goarch: ${{ matrix.goarch }}
-          goversion: "1.24"
-          project_path: "./app"
-          binary_name: "goredis"
-          ldflags: "-s -w -X main.version=${{ github.ref_name }}"
-          extra_files: LICENSE README.md
+          go-version: "1.24"
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          go build -ldflags="-s -w" -o goredis-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.binary_suffix }} ./app
+
+      - name: Upload binaries to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: goredis-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.binary_suffix }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
