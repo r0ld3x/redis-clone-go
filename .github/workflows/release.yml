@@ -1,0 +1,40 @@
+name: Go Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  releases-matrix:
+    name: Release Go Binary
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin, freebsd]
+        goarch: [amd64, arm64, arm, 386]
+        exclude:
+          - goarch: arm
+            goos: windows
+          - goarch: arm
+            goos: darwin
+          - goarch: 386
+            goos: darwin
+          - goarch: arm
+            goos: freebsd
+          - goarch: 386
+            goos: freebsd
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: wangyoucao577/go-release-action@v1.51
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          goos: ${{ matrix.goos }}
+          goarch: ${{ matrix.goarch }}
+          goversion: "1.24"
+          project_path: "./app"
+          binary_name: "goredis"
+          ldflags: "-s -w -X main.version=${{ github.ref_name }}"
+          extra_files: LICENSE README.md
