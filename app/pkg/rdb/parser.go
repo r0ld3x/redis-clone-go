@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/codecrafters-io/redis-starter-go/app/database"
+	"github.com/codecrafters-io/redis-starter-go/app/pkg/database"
 )
 
 func ParseRDB(filename string) error {

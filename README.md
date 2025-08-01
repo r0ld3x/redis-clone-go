@@ -1,244 +1,160 @@
-# 🚀 Redis Clone in Go
+# Redis Server Implementation
 
-A lightweight, high-performance Redis-inspired clone written in Go, following the **"Build Your Own Redis"** CodeCrafters challenge. Perfect for learning database internals, caching mechanisms, and distributed systems concepts.
+This is a refactored Redis server implementation in Go, following Go best practices for project structure and code organization.
 
-## ✨ Features
+## Project Structure
 
-This Redis clone implements **20 core Redis commands** with full RESP protocol compatibility:
-
-### 🔧 Basic Operations
-
-- **PING** - Test server connectivity and health checks
-- **ECHO** - Echo back messages for debugging
-- **GET/SET** - Core key-value storage operations with TTL support
-- **INCR** - Atomic increment operations for counters
-- **TYPE** - Inspect value types (string, stream, etc.)
-
-### 📊 Server Management
-
-- **COMMAND** - Command introspection and metadata
-- **CONFIG** - Runtime configuration management
-- **INFO** - Server statistics and replication status
-- **KEYS** - Pattern-based key discovery and listing
-
-### 🔄 Replication & Clustering
-
-- **REPLCONF** - Replica configuration and acknowledgments
-- **PSYNC** - Partial synchronization for efficient replication
-- **WAIT** - Wait for replication acknowledgments from replicas
-
-### 🎯 Advanced Features
-
-- **MULTI/EXEC/DISCARD** - ACID transaction support with command queuing
-- **XADD/XRANGE/XREAD** - Redis Streams for event sourcing and messaging
-
-## 📋 Complete Command Reference
-
-| Command    | Category    | Description           | Syntax                            | Example                        |
-| ---------- | ----------- | --------------------- | --------------------------------- | ------------------------------ |
-| `PING`     | Connection  | Test connectivity     | `PING [message]`                  | `PING` → `PONG`                |
-| `ECHO`     | Connection  | Echo message          | `ECHO message`                    | `ECHO "hello"` → `"hello"`     |
-| `GET`      | String      | Get value by key      | `GET key`                         | `GET name` → `"Redis"`         |
-| `SET`      | String      | Set key-value pair    | `SET key value [PX milliseconds]` | `SET name "Redis" PX 1000`     |
-| `INCR`     | String      | Increment number      | `INCR key`                        | `INCR counter` → `1`           |
-| `TYPE`     | Generic     | Get value type        | `TYPE key`                        | `TYPE mykey` → `string`        |
-| `KEYS`     | Generic     | Find keys by pattern  | `KEYS pattern`                    | `KEYS user:*`                  |
-| `CONFIG`   | Server      | Get/set config        | `CONFIG GET parameter`            | `CONFIG GET dir`               |
-| `INFO`     | Server      | Server information    | `INFO [section]`                  | `INFO replication`             |
-| `COMMAND`  | Server      | Command metadata      | `COMMAND`                         | Returns all commands           |
-| `REPLCONF` | Replication | Replica configuration | `REPLCONF option value`           | `REPLCONF listening-port 6380` |
-| `PSYNC`    | Replication | Partial sync          | `PSYNC replicationid offset`      | `PSYNC ? -1`                   |
-| `WAIT`     | Replication | Wait for replicas     | `WAIT numreplicas timeout`        | `WAIT 1 1000`                  |
-| `MULTI`    | Transaction | Start transaction     | `MULTI`                           | `MULTI` → `OK`                 |
-| `EXEC`     | Transaction | Execute transaction   | `EXEC`                            | `EXEC` → `[results]`           |
-| `DISCARD`  | Transaction | Discard transaction   | `DISCARD`                         | `DISCARD` → `OK`               |
-| `XADD`     | Stream      | Add to stream         | `XADD stream ID field value`      | `XADD mystream * temp 25`      |
-| `XRANGE`   | Stream      | Query stream range    | `XRANGE stream start end`         | `XRANGE mystream - +`          |
-| `XREAD`    | Stream      | Read from streams     | `XREAD STREAMS stream id`         | `XREAD STREAMS mystream 0`     |
-
-## 🏗️ Architecture & Implementation
-
-### Core Components
-
-- **RESP Protocol Parser**: Hand-crafted Redis Serialization Protocol implementation
-- **Concurrent Server**: Goroutine-based connection handling for thousands of clients
-- **In-Memory Storage**: Optimized hash maps with TTL support
-- **Replication Engine**: Master-slave synchronization with offset tracking
-- **Transaction Manager**: ACID compliance with command queuing
-
-### Replication Handshake Process
-
-The replication system implements a sophisticated 4-step handshake protocol:
-
-| Step | Command                    | Purpose                      | Expected Response |
-| ---- | -------------------------- | ---------------------------- | ----------------- |
-| 1    | `PING`                     | Test master connectivity     | `PONG`            |
-| 2    | `REPLCONF listening-port ` | Announce replica port        | `OK`              |
-| 3    | `REPLCONF capa psync2`     | Declare PSYNC2 capability    | `OK`              |
-| 4    | `PSYNC ? -1`               | Request full synchronization | `+FULLRESYNC  `   |
-
-**Post-Handshake**: Master sends RDB snapshot, then streams commands with offset tracking for consistency.
-
-## 🚀 Installation & Quick Start
-
-### Prerequisites
-
-- **Go 1.20+** (tested with Go 1.24)
-- **Unix-like environment** (Linux, macOS, WSL)
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/r0ld3x/redis-clone-go.git
-cd redis-clone-go
-
-# Build the server
-go build -o goredis
-
-# Start the server
-./goredis
+```
+app/
+├── cmd/                    # Application entry points
+│   └── server/
+│       └── main.go        # Main server application
+├── internal/               # Private application code
+│   ├── commands/          # Command handlers
+│   │   ├── interface.go   # Command interface and registry
+│   │   ├── basic.go       # Basic commands (PING, ECHO, COMMAND)
+│   │   ├── data.go        # Data commands (GET, SET, INCR, KEYS, TYPE)
+│   │   ├── server.go      # Server commands (CONFIG, INFO, REPLCONF, PSYNC, WAIT)
+│   │   ├── transaction.go # Transaction commands (MULTI, EXEC, DISCARD)
+│   │   └── stream.go      # Stream commands (XADD, XRANGE, XREAD)
+│   ├── config/            # Configuration management
+│   │   └── config.go      # Configuration loading and validation
+│   ├── logging/           # Centralized logging
+│   │   └── logger.go      # Logger implementation
+│   ├── protocol/          # RESP protocol handling
+│   │   └── resp.go        # RESP protocol read/write functions
+│   ├── server/            # Server core logic
+│   │   └── server.go      # Server struct and methods
+│   └── transaction/       # Transaction handling
+│       └── transaction.go # Transaction manager
+└── pkg/                   # Public packages
+    ├── database/          # Database operations
+    │   ├── database.go    # Core database operations
+    │   └── stream.go      # Stream data structure operations
+    └── rdb/              # RDB file parsing
+        ├── parser.go      # RDB file parser
+        └── helpers.go     # RDB parsing helpers
 ```
 
-### Basic Usage
+## Key Improvements
+
+### 1. **Proper Separation of Concerns**
+
+- **Commands**: Each command type is in its own file with focused responsibility
+- **Server Logic**: Separated from command handling
+- **Protocol**: RESP protocol handling is isolated
+- **Configuration**: Centralized configuration management
+- **Logging**: Consistent logging across all components
+
+### 2. **Better Code Organization**
+
+- **cmd/**: Application entry points following Go conventions
+- **internal/**: Private application code that can't be imported by other projects
+- **pkg/**: Public packages that could be reused by other projects
+
+### 3. **Improved Error Handling**
+
+- Consistent error handling patterns across all components
+- Proper error propagation and logging
+- Graceful handling of connection failures
+
+### 4. **Enhanced Maintainability**
+
+- Single responsibility principle applied to all modules
+- Clear interfaces and abstractions
+- Reduced code duplication
+- Better testability through dependency injection
+
+### 5. **Thread Safety**
+
+- Proper mutex usage for concurrent access
+- Safe replica management
+- Transaction isolation per connection
+
+## Running the Server
 
 ```bash
-# Connect with redis-cli
-redis-cli -p 6379
+# From the project root
+go run app/cmd/server/main.go [flags]
 
-# Basic operations
-> PING
-PONG
-> SET user:1 "Alice"
-OK
-> GET user:1
-"Alice"
-> INCR counter
-(integer) 1
-> TYPE counter
-integer
+# Available flags:
+# --port=6379              # Port to listen on
+# --dir=/path/to/data      # Data directory
+# --dbfilename=dump.rdb    # RDB filename
+# --replicaof="host port"  # Master address for replica mode
 ```
 
-### Transaction Example
+## Supported Commands
 
-```bash
-> MULTI
-OK
-> SET balance 100
-QUEUED
-> INCR transactions
-QUEUED
-> EXEC
-1) OK
-2) (integer) 1
-```
+### Basic Commands
 
-### Streams Example
+- `PING` - Test connectivity
+- `ECHO <message>` - Echo a message
+- `COMMAND` - Get command info
 
-```bash
-> XADD sensor:temp * temperature 25.5 humidity 60
-"1704067200000-0"
-> XRANGE sensor:temp - +
-1) 1) "1704067200000-0"
-   2) 1) "temperature"
-      2) "25.5"
-      3) "humidity"
-      4) "60"
-```
+### Data Commands
 
-## 🔧 Configuration Options
+- `GET <key>` - Get value by key
+- `SET <key> <value> [PX <milliseconds>]` - Set key-value with optional TTL
+- `INCR <key>` - Increment integer value
+- `KEYS <pattern>` - Find keys matching pattern
+- `TYPE <key>` - Get key type
 
-```bash
-# Custom port
-./goredis --port 8080
+### Server Commands
 
-# Enable replication (replica mode)
-./goredis --replicaof "127.0.0.1 6379"
+- `CONFIG GET <parameter>` - Get configuration parameter
+- `INFO [section]` - Get server information
+- `REPLCONF <subcommand> [args...]` - Replication configuration
+- `PSYNC <replid> <offset>` - Partial synchronization
+- `WAIT <numreplicas> <timeout>` - Wait for replica acknowledgments
 
-# Set data directory and RDB filename
-./goredis --dir /var/lib/redis --dbfilename dump.rdb
+### Transaction Commands
 
-# Combined configuration
-./goredis --port 6380 --replicaof "127.0.0.1 6379" --dir ./data
-```
+- `MULTI` - Start transaction
+- `EXEC` - Execute transaction
+- `DISCARD` - Discard transaction
 
-## 🎯 Why This Project?
+### Stream Commands
 
-Building this Redis clone provided deep insights into:
+- `XADD <key> <id> <field> <value> [field value ...]` - Add entry to stream
+- `XRANGE <key> <start> <end>` - Get range of entries from stream
+- `XREAD [BLOCK <milliseconds>] STREAMS <key> [key ...] <id> [id ...]` - Read from streams
 
-- **RESP Protocol**: Understanding Redis wire protocol and binary serialization
-- **Concurrent Programming**: Goroutines, channels, and race condition handling
-- **Replication Algorithms**: Master-slave synchronization and consistency models
-- **Memory Management**: Efficient data structures and garbage collection optimization
-- **Network Programming**: TCP servers, connection pooling, and client handling
-- **Transaction Systems**: ACID properties and isolation levels
+## Architecture Features
 
-## 📈 Performance Characteristics
+### Master-Slave Replication
 
-- **Throughput**: 10,000+ operations/second on commodity hardware
-- **Latency**: Sub-millisecond response times for basic operations
-- **Memory**: Optimized data structures with minimal overhead
-- **Concurrency**: Handles thousands of simultaneous connections
-- **Replication**: Near real-time synchronization with offset tracking
+- Automatic handshake process
+- Command replication to slaves
+- Offset tracking and synchronization
+- RDB file transfer for full resync
 
-## 🧪 Development Roadmap
+### Transaction Support
 
-### ✅ Completed Features
+- ACID transaction properties
+- Command queuing during MULTI
+- Atomic execution with EXEC
+- Transaction rollback with DISCARD
 
-- Full RESP protocol implementation
-- 20 core Redis commands
-- Master-slave replication
-- Transaction support
-- Redis Streams
-- TTL and expiration
+### Stream Data Structure
 
-### 🚀 Planned Enhancements
+- Time-ordered entries with unique IDs
+- Range queries and blocking reads
+- Automatic ID generation
+- Field-value pair storage
 
-- **Persistence**: RDB snapshots and AOF logging
-- **Performance**: Benchmarking suite and optimization
-- **Clustering**: Redis Cluster protocol support
-- **Security**: Authentication and ACL system
-- **Monitoring**: Metrics and health endpoints
-- **Testing**: Comprehensive test suite
+### RDB Persistence
 
-## 🛠️ Technical Stack
+- RDB file parsing and loading
+- Support for expiration times
+- Metadata and database selection
+- Various encoding formats
 
-- **Language**: Go 1.24 with generics
-- **Protocol**: Redis Serialization Protocol (RESP)
-- **Concurrency**: Goroutines and channels
-- **Networking**: TCP with connection pooling
-- **Build System**: Go modules
-- **Logging**: Structured logging with levels
+## Code Quality Features
 
-## 🤝 Contributing
-
-Contributions are highly welcome! Here's how to get started:
-
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
-4. **Push** to the branch (`git push origin feature/amazing-feature`)
-5. **Open** a Pull Request
-
-### Areas for Contribution
-
-- Performance optimizations
-- Additional Redis commands
-- Test coverage improvements
-- Documentation enhancements
-- Bug fixes and stability improvements
-
-## 📝 License
-
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **CodeCrafters** for the comprehensive "Build Your Own Redis" challenge
-- **Redis Labs** for the excellent protocol documentation and reference implementation
-- **Go Community** for outstanding tooling, libraries, and best practices
-- **Open Source Contributors** who make projects like this possible
-
-**⭐ Star this repository if you found it helpful!**
-
-**Built with ❤️ and lots of ☕ by [Roldex Stark](https://github.com/r0ld3x)**
+- **Comprehensive logging** with different log levels
+- **Proper error handling** with detailed error messages
+- **Thread-safe operations** with appropriate locking
+- **Clean interfaces** for easy testing and extension
+- **Consistent code style** following Go conventions
+- **Modular design** for easy maintenance and updates
