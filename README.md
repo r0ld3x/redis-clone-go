@@ -6,9 +6,7 @@ This is a refactored Redis server implementation in Go, following Go best practi
 
 ```
 app/
-├── cmd/                    # Application entry points
-│   └── server/
-│       └── main.go        # Main server application
+├── main.go                  # Main server application
 ├── internal/               # Private application code
 │   ├── commands/          # Command handlers
 │   │   ├── interface.go   # Command interface and registry
