@@ -11,10 +11,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/codecrafters-io/redis-starter-go/app/internal/config"
-	"github.com/codecrafters-io/redis-starter-go/app/internal/logging"
-	"github.com/codecrafters-io/redis-starter-go/app/internal/protocol"
-	"github.com/codecrafters-io/redis-starter-go/app/internal/transaction"
+	"github.com/r0ld3x/redis-clone-go/app/internal/config"
+	"github.com/r0ld3x/redis-clone-go/app/internal/logging"
+	"github.com/r0ld3x/redis-clone-go/app/internal/protocol"
+
+	"github.com/r0ld3x/redis-clone-go/app/internal/transaction"
 )
 
 type Server struct {

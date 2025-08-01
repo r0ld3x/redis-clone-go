@@ -6,10 +6,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/codecrafters-io/redis-starter-go/app/internal/logging"
-	"github.com/codecrafters-io/redis-starter-go/app/internal/protocol"
-	"github.com/codecrafters-io/redis-starter-go/app/internal/server"
-	"github.com/codecrafters-io/redis-starter-go/app/pkg/database"
+	"github.com/r0ld3x/redis-clone-go/app/internal/logging"
+	"github.com/r0ld3x/redis-clone-go/app/internal/protocol"
+	"github.com/r0ld3x/redis-clone-go/app/internal/server"
+
+	"github.com/r0ld3x/redis-clone-go/app/pkg/database"
 )
 
 // GetHandler handles GET commands
@@ -88,10 +89,8 @@ func (h *SetHandler) Handle(srv *server.Server, clientConn net.Conn, args []stri
 		command = append(command, "PX", strconv.Itoa(ms))
 	}
 
-	// Replicate to slaves
 	srv.ReplicateCommand(command)
 
-	// Respond to client
 	h.logger.Network("OUT", "Sending OK response to client")
 	protocol.WriteSimpleString(clientConn, "OK")
 	h.logger.Success("Command completed successfully")

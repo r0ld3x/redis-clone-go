@@ -3,7 +3,7 @@ package commands
 import (
 	"net"
 
-	"github.com/codecrafters-io/redis-starter-go/app/internal/server"
+	"github.com/r0ld3x/redis-clone-go/app/internal/server"
 )
 
 // Command represents a Redis command type

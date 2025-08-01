@@ -6,9 +6,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/codecrafters-io/redis-starter-go/app/internal/logging"
-	"github.com/codecrafters-io/redis-starter-go/app/internal/protocol"
-	"github.com/codecrafters-io/redis-starter-go/app/internal/server"
+	"github.com/r0ld3x/redis-clone-go/app/internal/logging"
+	"github.com/r0ld3x/redis-clone-go/app/internal/protocol"
+
+	"github.com/r0ld3x/redis-clone-go/app/internal/server"
 )
 
 // ConfigHandler handles CONFIG commands

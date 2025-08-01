@@ -7,10 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/codecrafters-io/redis-starter-go/app/internal/logging"
-	"github.com/codecrafters-io/redis-starter-go/app/internal/protocol"
-	"github.com/codecrafters-io/redis-starter-go/app/internal/server"
-	"github.com/codecrafters-io/redis-starter-go/app/pkg/database"
+	"github.com/r0ld3x/redis-clone-go/app/internal/logging"
+	"github.com/r0ld3x/redis-clone-go/app/internal/protocol"
+	"github.com/r0ld3x/redis-clone-go/app/internal/server"
+
+	"github.com/r0ld3x/redis-clone-go/app/pkg/database"
 )
 
 // XAddHandler handles XADD commands

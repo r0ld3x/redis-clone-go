@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/codecrafters-io/redis-starter-go/app/internal/logging"
+	"github.com/r0ld3x/redis-clone-go/app/internal/logging"
 )
 
 var logger = logging.NewLogger("PROTOCOL")
