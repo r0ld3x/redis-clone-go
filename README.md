@@ -73,7 +73,7 @@ app/
 
 ```bash
 # From the project root
-go run app/cmd/server/main.go [flags]
+go run app/main.go [flags]
 
 # Available flags:
 # --port=6379              # Port to listen on
