@@ -118,7 +118,6 @@ func handleClientConnection(srv *server.Server, conn net.Conn, registry *command
 		cmd := strings.ToUpper(args[0])
 		commandArgs := args[1:]
 
-		// Handle transaction commands
 		if srv.TransactionMgr.IsInTransaction(conn) {
 			if cmd == "EXEC" || cmd == "DISCARD" || cmd == "MULTI" {
 				handler, exists := registry.Get(commands.Command(cmd))
@@ -149,7 +148,7 @@ func handleClientConnection(srv *server.Server, conn net.Conn, registry *command
 	}
 }
 
-func handleMasterConnection(srv *server.Server, registry *commands.Registry) {
+func handleMasterConnection(srv *server.Server, _ *commands.Registry) {
 	logger := logging.NewLogger("REPLICA")
 	logger.Info("Starting to handle commands from master")
 

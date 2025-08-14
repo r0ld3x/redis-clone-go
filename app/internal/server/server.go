@@ -19,17 +19,17 @@ import (
 )
 
 type Server struct {
-	Config            *config.Config
-	ReplicaConn       []net.Conn
-	MasterConn        net.Conn
-	ReplicationOffset int
-	ReplicationID     string
-	ReplicaOffsets    map[net.Conn]int
-	AckReceived       chan net.Conn
-	HandshakeComplete bool
-	TransactionMgr    *transaction.Manager
-	Logger            *logging.Logger
-	Mutex             sync.RWMutex
+	Config            *config.Config       // Server configuration (ports, replication settings, etc.)
+	ReplicaConn       []net.Conn           // TCP connections to all active replicas (slaves)
+	MasterConn        net.Conn             // TCP connection to our master (if we're running in replica mode)
+	ReplicationOffset int                  // Our own current replication offset (master's position OR replica's applied offset)
+	ReplicationID     string               // Unique replication ID (used for partial resync)
+	ReplicaOffsets    map[net.Conn]int     // For each replica, the latest ACKed replication offset
+	AckReceived       chan net.Conn        // Signal channel for WAIT when a replica sends REPLCONF ACK
+	HandshakeComplete bool                 // True if master/replica handshake completed
+	TransactionMgr    *transaction.Manager // Handles MULTI/EXEC command queues
+	Logger            *logging.Logger      // Central logging
+	Mutex             sync.RWMutex         // Protects shared state
 }
 
 func NewServer(cfg *config.Config) *Server {

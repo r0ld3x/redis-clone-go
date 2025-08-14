@@ -83,7 +83,6 @@ func (h *SetHandler) Handle(srv *server.Server, clientConn net.Conn, args []stri
 	database.SetKey(key, val, ms)
 	h.logger.Info("Key stored successfully: %s = %s", key, val)
 
-	// Build the full SET command for replication
 	command := []string{"SET", key, val}
 	if ms > -1 {
 		command = append(command, "PX", strconv.Itoa(ms))

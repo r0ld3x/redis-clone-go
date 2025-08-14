@@ -5,6 +5,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/r0ld3x/redis-clone-go/app/internal/logging"
 	"github.com/r0ld3x/redis-clone-go/app/internal/protocol"
@@ -111,14 +112,12 @@ func (h *ReplconfHandler) Handle(srv *server.Server, clientConn net.Conn, args [
 	case "GETACK":
 		h.logger.Info("Handling GETACK request from %s", clientConn.RemoteAddr())
 
-		// For replicas, send their local offset
 		if srv.IsSlave() {
 			h.logger.Debug("Replica responding with local offset: %d", srv.ReplicationOffset)
 			h.logger.Network("OUT", "Sending ACK with offset %d", srv.ReplicationOffset)
 			protocol.WriteArray(clientConn, []string{"REPLCONF", "ACK", strconv.Itoa(srv.ReplicationOffset)})
 			h.logger.Success("Sent ACK with replica offset %d", srv.ReplicationOffset)
 		} else {
-			// For master handling replica's GETACK, send replica's offset
 			offset := srv.GetReplicaOffset(clientConn)
 			h.logger.Debug("Master responding with replica offset: %d", offset)
 			h.logger.Network("OUT", "Sending ACK with offset %d", offset)
@@ -216,77 +215,112 @@ func (h *WaitHandler) Handle(srv *server.Server, clientConn net.Conn, args []str
 		h.logger = logging.NewLogger("WAIT")
 	}
 
-	h.logger.Info("==================== WAIT COMMAND START ====================")
-	h.logger.Info("Command received from %s with args: %v", clientConn.RemoteAddr(), args)
+	// Reject WAIT on replicas
+	if srv.IsSlave() {
+		h.logger.Info("WAIT command called on a replica — not allowed")
+		protocol.WriteError(clientConn, "ERR WAIT cannot be used with replica instances.")
+		return nil
+	}
 
+	h.logger.Info("========== WAIT COMMAND START ==========")
+	h.logger.Info("From %s — Args: %v", clientConn.RemoteAddr(), args)
+
+	// Argument check
 	if len(args) < 2 {
-		h.logger.Error("Wrong number of arguments: %d", len(args))
+		h.logger.Error("Wrong number of arguments: got %d", len(args))
 		protocol.WriteError(clientConn, "wrong number of arguments for 'WAIT'")
 		return nil
 	}
 
 	count, err1 := strconv.Atoi(args[0])
 	timeout, err2 := strconv.Atoi(args[1])
-
 	if err1 != nil || err2 != nil {
-		h.logger.Error("Failed to parse arguments: count_err=%v, timeout_err=%v", err1, err2)
+		h.logger.Error("Invalid WAIT args — countErr=%v timeoutErr=%v", err1, err2)
 		protocol.WriteError(clientConn, "invalid arguments for 'WAIT'")
 		return nil
 	}
 
-	h.logger.Info("Need %d acks within %d ms", count, timeout)
-
+	// Read current master replication offset
 	srv.Mutex.RLock()
+	masterOffset := srv.ReplicationOffset
 	replicaCount := len(srv.ReplicaConn)
 	srv.Mutex.RUnlock()
 
+	h.logger.Info("Need %d acks within %d ms. Master offset=%d", count, timeout, masterOffset)
 	h.logger.Info("Connected replicas: %d", replicaCount)
 
 	if replicaCount == 0 {
-		h.logger.Info("No replicas, returning 0")
+		h.logger.Info("No replicas — returning 0 immediately")
 		protocol.WriteInteger(clientConn, 0)
 		return nil
 	}
 
-	// Send GETACK to all replicas
-	srv.Mutex.RLock()
-	replicas := make([]net.Conn, len(srv.ReplicaConn))
-	copy(replicas, srv.ReplicaConn)
-	srv.Mutex.RUnlock()
-
-	for _, conn := range replicas {
-		go func(conn net.Conn) {
-			conn.Write([]byte(protocol.EncodeArray([]string{"REPLCONF", "GETACK", "*"})))
-		}(conn)
+	for _, conn := range srv.ReplicaConn {
+		h.logger.Debug("Sending REPLCONF GETACK * to %v", conn.RemoteAddr())
+		conn.Write([]byte(protocol.EncodeArray([]string{"REPLCONF", "GETACK", "*"})))
 	}
 
-	// Count initial acks (replicas that are already up to date)
+	// acks := 0
+	// srv.Mutex.RLock()
+	// for _, conn := range srv.ReplicaConn {
+	// 	ro := srv.ReplicaOffsets[conn]
+	// 	h.logger.Debug("Replica %v offset=%d (master=%d)", conn.RemoteAddr(), ro, masterOffset)
+	// 	if ro >= masterOffset {
+	// 		acks++
+	// 	}
+	// }
+	// srv.Mutex.RUnlock()
 	acks := 0
-	srv.Mutex.RLock()
 	for _, conn := range srv.ReplicaConn {
+		fmt.Println("s.replicaOffsets[conn] ", srv.ReplicaOffsets[conn])
 		if srv.ReplicaOffsets[conn] <= 0 {
 			acks++
 		}
 	}
-	srv.Mutex.RUnlock()
 
-	// Wait for additional acks or timeout
-	// timer := time.After(time.Duration(timeout) * time.Millisecond)
-	//
+	h.logger.Info("Initial ACKs: %d", acks)
+
+	timer := time.After(time.Duration(timeout) * time.Millisecond)
+
+outer:
+	for acks < count {
+		select {
+		case <-srv.AckReceived:
+			acks++
+			h.logger.Info("New ACK received — total=%d / %d", acks, count)
+		case <-timer:
+			h.logger.Info("WAIT timeout — total=%d / %d", acks, count)
+			break outer
+		}
+	}
+
+	// 	deadline := time.After(time.Duration(timeout) * time.Millisecond)
+
 	// outer:
-	// for acks < count {
-	// 	select {
-	// 	case <-srv.AckReceived:
-	// 		acks++
-	// 		h.logger.Info("ACK received, total: %d", acks)
-	// 	case <-timer:
-	// 		h.logger.Info("Timeout reached, total: %d", acks)
-	// 		break outer
+	// 	for acks < count {
+	// 		select {
+	// 		case <-srv.AckReceived:
+	// 			srv.Mutex.RLock()
+	// 			newAcks := 0
+	// 			for _, conn := range srv.ReplicaConn {
+	// 				ro := srv.ReplicaOffsets[conn]
+	// 				if ro >= masterOffset {
+	// 					newAcks++
+	// 				}
+	// 			}
+	// 			acks = newAcks
+	// 			srv.Mutex.RUnlock()
+
+	// 			h.logger.Info("New ACK received — total=%d / %d", acks, count)
+
+	// 		case <-deadline:
+	// 			h.logger.Info("WAIT timeout — total=%d / %d", acks, count)
+	// 			break outer
+	// 		}
 	// 	}
-	// }
 
 	h.logger.Info("Returning %d acks", acks)
+	h.logger.Info("========== WAIT COMMAND END ==========")
 	protocol.WriteInteger(clientConn, acks)
-	h.logger.Info("==================== WAIT COMMAND END ====================")
 	return nil
 }
