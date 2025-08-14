@@ -104,7 +104,7 @@ func handleClientConnection(srv *server.Server, conn net.Conn, registry *command
 		args, ok := protocol.ReadArrayArguments(scanner, conn)
 		if !ok {
 			logger.Info("Connection closed or error reading from: %s", conn.RemoteAddr())
-			return
+			continue
 		}
 
 		logger.Network("IN", "Received command from %s: %v", conn.RemoteAddr(), args)
