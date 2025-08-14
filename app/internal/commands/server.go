@@ -184,7 +184,6 @@ func (h *PsyncHandler) Handle(srv *server.Server, clientConn net.Conn, args []st
 	if replID == "?" && offset == "-1" {
 		h.logger.Info("Performing FULLRESYNC for %s", clientConn.RemoteAddr())
 
-		// Add to replica connections
 		srv.AddReplica(clientConn)
 
 		if err := srv.SendFullResync(clientConn); err != nil {

@@ -208,7 +208,6 @@ func (s *Server) SendHandshake() error {
 	rdbLen, _ := strconv.Atoi(rdbLenStr)
 	s.Logger.Info("Reading RDB file of %d bytes", rdbLen)
 
-	// Skip RDB content
 	io.CopyN(io.Discard, reader, int64(rdbLen))
 	s.Logger.Debug("RDB file content skipped")
 
@@ -234,6 +233,7 @@ func (s *Server) expectSimpleString(reader *bufio.Reader, expected string) error
 	s.Logger.Network("IN", "Received: %s", line)
 
 	if !strings.HasPrefix(line, "+") {
+
 		s.Logger.Error("Expected simple string but got: %s", line)
 		return fmt.Errorf("expectSimpleString expected a simple string but got: %s", line)
 	}
