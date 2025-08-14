@@ -159,13 +159,13 @@ func handleMasterConnection(srv *server.Server, _ *commands.Registry) {
 	for {
 		if srv.IsConnectionClosed(srv.MasterConn) {
 			logger.Error("Connection to master lost")
-			continue
+			return
 		}
 
 		args, ok := protocol.ReadArrayArguments(scanner, srv.MasterConn)
 		if !ok {
 			logger.Error("Connection to master lost or error reading")
-			continue
+			return
 		}
 
 		logger.Network("IN", "Received command from master: %v", args)
