@@ -48,7 +48,7 @@ func main() {
 			if err := srv.SendHandshake(reader); err != nil {
 				log.Fatalf("handshake failed: %v", err)
 			}
-			handleMasterConnection(srv, reader)
+			handleMasterConnection(srv)
 		}()
 	}
 
@@ -104,7 +104,7 @@ func handleClientConnection(srv *server.Server, conn net.Conn, registry *command
 		args, ok := protocol.ReadArrayArguments(scanner, conn)
 		if !ok {
 			logger.Info("Connection closed or error reading from: %s", conn.RemoteAddr())
-			continue
+			return
 		}
 
 		logger.Network("IN", "Received command from %s: %v", conn.RemoteAddr(), args)
@@ -112,7 +112,7 @@ func handleClientConnection(srv *server.Server, conn net.Conn, registry *command
 		if len(args) < 1 {
 			logger.Error("Empty command received from %s", conn.RemoteAddr())
 			protocol.WriteError(conn, "ERR parsing args")
-			continue
+			return
 		}
 
 		cmd := strings.ToUpper(args[0])
@@ -148,7 +148,7 @@ func handleClientConnection(srv *server.Server, conn net.Conn, registry *command
 	}
 }
 
-func handleMasterConnection(srv *server.Server, reader *bufio.Reader) {
+func handleMasterConnection(srv *server.Server) {
 	logger := logging.NewLogger("REPLICA")
 	logger.Info("Starting to handle commands from master")
 
