@@ -47,7 +47,9 @@ func main() {
 			if err := srv.SendHandshake(); err != nil {
 				log.Fatalf("handshake failed: %v", err)
 			}
+			logger.Info("creating handleMasterConnection")
 			handleMasterConnection(srv, registry)
+			logger.Info("created handleMasterConnection")
 		}()
 	}
 
@@ -152,19 +154,18 @@ func handleMasterConnection(srv *server.Server, _ *commands.Registry) {
 	logger := logging.NewLogger("REPLICA")
 	logger.Info("Starting to handle commands from master")
 
-	// Create a new scanner from the master connection after handshake
 	scanner := bufio.NewScanner(srv.MasterConn)
 
 	for {
 		if srv.IsConnectionClosed(srv.MasterConn) {
 			logger.Error("Connection to master lost")
-			return
+			continue
 		}
 
 		args, ok := protocol.ReadArrayArguments(scanner, srv.MasterConn)
 		if !ok {
 			logger.Error("Connection to master lost or error reading")
-			return
+			continue
 		}
 
 		logger.Network("IN", "Received command from master: %v", args)
