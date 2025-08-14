@@ -44,11 +44,12 @@ func main() {
 		}
 		logger.Success("Connected to master successfully")
 		go func() {
-			if err := srv.SendHandshake(); err != nil {
+			reader := bufio.NewReader(srv.MasterConn) // single buffered reader
+			if err := srv.SendHandshake(reader); err != nil {
 				log.Fatalf("handshake failed: %v", err)
 			}
 			logger.Info("creating handleMasterConnection")
-			handleMasterConnection(srv, registry)
+			handleMasterConnection(srv, reader, registry)
 			logger.Info("created handleMasterConnection")
 		}()
 	}
@@ -150,7 +151,7 @@ func handleClientConnection(srv *server.Server, conn net.Conn, registry *command
 	}
 }
 
-func handleMasterConnection(srv *server.Server, _ *commands.Registry) {
+func handleMasterConnection(srv *server.Server, reader *bufio.Reader, _ *commands.Registry) {
 	logger := logging.NewLogger("REPLICA")
 	logger.Info("Starting to handle commands from master")
 

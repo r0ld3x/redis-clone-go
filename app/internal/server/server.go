@@ -158,9 +158,8 @@ func (s *Server) IsConnectionClosed(conn net.Conn) bool {
 	return false
 }
 
-func (s *Server) SendHandshake() error {
+func (s *Server) SendHandshake(reader *bufio.Reader) error {
 	s.Logger.Info("==================== HANDSHAKE START ====================")
-	reader := bufio.NewReader(s.MasterConn)
 
 	s.Logger.Info("Starting handshake with master %s", s.Config.MasterAddress)
 
