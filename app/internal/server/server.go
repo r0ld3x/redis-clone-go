@@ -2,7 +2,9 @@ package server
 
 import (
 	"bufio"
+	"crypto/rand"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"net"
@@ -269,12 +271,11 @@ func (s *Server) SendFullResync(clientConn net.Conn) error {
 	return nil
 }
 
-// generateReplID generates a random replication ID
 func generateReplID() string {
-	chars := []byte("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	result := make([]byte, 40)
-	for i := range result {
-		result[i] = chars[i%len(chars)] // Simple deterministic generation for now
+	bytes := make([]byte, 20)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		panic(err)
 	}
-	return string(result)
+	return hex.EncodeToString(bytes)
 }
