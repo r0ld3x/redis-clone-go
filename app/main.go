@@ -44,17 +44,14 @@ func main() {
 		}
 		logger.Success("Connected to master successfully")
 		go func() {
-			reader := bufio.NewReader(srv.MasterConn) // single buffered reader
+			reader := bufio.NewReader(srv.MasterConn)
 			if err := srv.SendHandshake(reader); err != nil {
 				log.Fatalf("handshake failed: %v", err)
 			}
-			logger.Info("creating handleMasterConnection")
-			handleMasterConnection(srv, reader, registry)
-			logger.Info("created handleMasterConnection")
+			handleMasterConnection(srv, reader)
 		}()
 	}
 
-	// Load RDB file if master and file specified
 	if cfg.IsMaster() && cfg.DBFileName != "" {
 		rdbPath := cfg.Directory + "/" + cfg.DBFileName
 		logger.Info("Loading RDB file: %s", rdbPath)
@@ -151,7 +148,7 @@ func handleClientConnection(srv *server.Server, conn net.Conn, registry *command
 	}
 }
 
-func handleMasterConnection(srv *server.Server, reader *bufio.Reader, _ *commands.Registry) {
+func handleMasterConnection(srv *server.Server, reader *bufio.Reader) {
 	logger := logging.NewLogger("REPLICA")
 	logger.Info("Starting to handle commands from master")
 
