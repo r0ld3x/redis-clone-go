@@ -217,9 +217,7 @@ func (s *Server) SendHandshake(reader *bufio.Reader) error {
 	s.ReplicationOffset = 0
 	s.Logger.Info("Reset replication offset to 0 after handshake")
 	s.Logger.Info("==================== HANDSHAKE END ====================")
-	if err := s.expectSimpleString(reader, "OK"); err != nil {
-		return err
-	}
+	protocol.WriteSimpleString(s.MasterConn, "OK")
 	return nil
 }
 
