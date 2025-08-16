@@ -80,11 +80,11 @@ func (h *LPushHandler) Handle(srv *server.Server, clientConn net.Conn, args []st
 	return nil
 }
 
-type LRangeHandler struct {
+type LLenHandler struct {
 	logger *logging.Logger
 }
 
-func (h *LRangeHandler) Handle(srv *server.Server, clientConn net.Conn, args []string) error {
+func (h *LLenHandler) Handle(srv *server.Server, clientConn net.Conn, args []string) error {
 	if h.logger == nil {
 		h.logger = logging.NewLogger("LLEN")
 	}
@@ -107,11 +107,11 @@ func (h *LRangeHandler) Handle(srv *server.Server, clientConn net.Conn, args []s
 	return nil
 }
 
-type LLenHandler struct {
+type LRangeHandler struct {
 	logger *logging.Logger
 }
 
-func (h *LLenHandler) Handle(srv *server.Server, clientConn net.Conn, args []string) error {
+func (h *LRangeHandler) Handle(srv *server.Server, clientConn net.Conn, args []string) error {
 	if h.logger == nil {
 		h.logger = logging.NewLogger("LRANGE")
 	}
