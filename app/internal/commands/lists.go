@@ -153,33 +153,47 @@ func (h *LPopHandler) Handle(srv *server.Server, clientConn net.Conn, args []str
 		h.logger = logging.NewLogger("LPOP")
 	}
 
-	if len(args) > 1 {
+	if len(args) < 1 {
 		protocol.WriteError(clientConn, "ERR wrong number of arguments for 'LPOP' command")
 		return nil
 	}
 
 	key := args[0]
 	var n = 0
-	if len(args) == 2 {
+	if len(args) >= 2 {
 		number, err := strconv.Atoi(args[1])
 		if err != nil {
 			protocol.WriteError(clientConn, "ERR wrong number of arguments for 'LPOP' command")
 			return nil
 		}
 		n = number
+		data, err := database.RemoveNFromArray(key, n)
+		if err != nil {
+			protocol.WriteError(clientConn, err.Error())
+			return nil
+		}
+		protocol.WriteArray(clientConn, data)
+		return nil
 	}
-	h.logger.Info("n: %d", n)
-	data, err := database.RemoveNFromArray(key, n)
+	data, err := database.RemoveNFromArray(key, 0)
 	if err != nil {
 		protocol.WriteError(clientConn, err.Error())
 		return nil
 	}
 	// command := append([]string{"RPUSH", strconv.Itoa(start), strconv.Itoa(end)})
 	// srv.ReplicateCommand(command)
+
+	if len(data) == 0 {
+		clientConn.Write([]byte("$-1\r\n"))
+		return nil
+	}
+
 	str := ""
 	for _, v := range data {
 		str += v
 	}
+	// response := fmt.Sprintf("$%d\r\n%s", len(str), str)
+	// clientConn.Write([]byte(response))
 	protocol.WriteBulkString(clientConn, str)
 	return nil
 }

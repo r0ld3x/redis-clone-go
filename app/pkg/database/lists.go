@@ -135,8 +135,12 @@ func RemoveNFromArray(key string, n int) ([]string, error) {
 	if length == 0 {
 		return []string{}, nil
 	}
-
-	toRemove := n + 1
+	var toRemove int
+	if n == 0 {
+		toRemove = n + 1
+	} else {
+		toRemove = n
+	}
 
 	if toRemove > length {
 		DB.Store(key, []string{})
