@@ -159,7 +159,14 @@ func (h *LPopHandler) Handle(srv *server.Server, clientConn net.Conn, args []str
 	}
 
 	key := args[0]
-	data, err := database.RemoveNFromArray(key, 0)
+	if len(args) == 2 {
+		n, err := strconv.Atoi(args[1])
+		if err != nil {
+			protocol.WriteError(clientConn, "ERR wrong number of arguments for 'LPOP' command")
+			return nil
+		}
+	}
+	data, err := database.RemoveNFromArray(key, n)
 	if err != nil {
 		protocol.WriteError(clientConn, err.Error())
 		return nil

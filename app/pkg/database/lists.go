@@ -133,7 +133,7 @@ func RemoveNFromArray(key string, n int) ([]string, error) {
 		return []string{}, nil
 	}
 
-	item, newslice := slice[0], slice[1:]
+	item, newslice := slice[0], slice[n:]
 	DB.Store(key, newslice)
 
 	return []string{item}, nil
