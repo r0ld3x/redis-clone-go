@@ -75,8 +75,8 @@ func (h *LRangeHandler) Handle(srv *server.Server, clientConn net.Conn, args []s
 		protocol.WriteError(clientConn, err.Error())
 		return nil
 	}
-	command := append([]string{"RPUSH", strconv.Itoa(start), strconv.Itoa(end)})
-	srv.ReplicateCommand(command)
+	// command := append([]string{"RPUSH", strconv.Itoa(start), strconv.Itoa(end)})
+	// srv.ReplicateCommand(command)
 
 	protocol.WriteArray(clientConn, data)
 	return nil
