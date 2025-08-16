@@ -2,7 +2,6 @@ package database
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/r0ld3x/redis-clone-go/app/internal/logging"
 )
