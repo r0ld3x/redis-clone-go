@@ -114,3 +114,27 @@ func GetArrayLength(key string) (int, error) {
 
 	return len(slice), nil
 }
+
+func RemoveNFromArray(key string, n int) ([]string, error) {
+
+	val, found := DB.Load(key)
+	var slice []string
+
+	if found {
+		if s, ok := val.([]string); ok {
+			slice = s
+		} else {
+			return []string{}, errors.New("WRONGTYPE Operation against a key holding the wrong kind of value")
+		}
+	} else {
+		slice = []string{}
+	}
+	if (len(slice) == 0) || (n > len(slice)) {
+		return []string{}, nil
+	}
+
+	item, newslice := slice[0], slice[1:]
+	DB.Store(key, newslice)
+
+	return []string{item}, nil
+}

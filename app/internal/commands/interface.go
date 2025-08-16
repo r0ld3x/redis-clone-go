@@ -33,6 +33,7 @@ const (
 	LRangeCommand   Command = "LRANGE"
 	LPushCommand    Command = "LPUSH"
 	LLenCommand     Command = "LLEN"
+	LPopCommand     Command = "LPOP"
 )
 
 // WriteCommands defines commands that modify data
@@ -91,4 +92,5 @@ func (r *Registry) RegisterAllHandlers() {
 	r.Register(LRangeCommand, &LRangeHandler{})
 	r.Register(LPushCommand, &LPushHandler{})
 	r.Register(LLenCommand, &LLenHandler{})
+	r.Register(LPopCommand, &LPopHandler{})
 }

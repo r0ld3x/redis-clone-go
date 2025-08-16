@@ -143,3 +143,30 @@ func (h *LRangeHandler) Handle(srv *server.Server, clientConn net.Conn, args []s
 	protocol.WriteArray(clientConn, data)
 	return nil
 }
+
+type LPopHandler struct {
+	logger *logging.Logger
+}
+
+func (h *LPopHandler) Handle(srv *server.Server, clientConn net.Conn, args []string) error {
+	if h.logger == nil {
+		h.logger = logging.NewLogger("LPOP")
+	}
+
+	if len(args) > 1 {
+		protocol.WriteError(clientConn, "ERR wrong number of arguments for 'LPOP' command")
+		return nil
+	}
+
+	key := args[0]
+	data, err := database.RemoveNFromArray(key, 0)
+	if err != nil {
+		protocol.WriteError(clientConn, err.Error())
+		return nil
+	}
+	// command := append([]string{"RPUSH", strconv.Itoa(start), strconv.Itoa(end)})
+	// srv.ReplicateCommand(command)
+
+	protocol.WriteArray(clientConn, data)
+	return nil
+}
