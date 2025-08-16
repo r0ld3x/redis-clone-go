@@ -48,7 +48,10 @@ func main() {
 			if err := srv.SendHandshake(reader); err != nil {
 				log.Fatalf("handshake failed: %v", err)
 			}
-			handleMasterConnection(srv)
+			// srv.Logger.Debug("Sending REPLCONF GETACK * to %v", srv.MasterConn.RemoteAddr())
+			// cmd := []string{"REPLCONF", "ACK", fmt.Sprintf("%d", srv.ReplicationOffset)}
+			// protocol.WriteArray(srv.MasterConn, cmd)
+			handleMasterConnection(srv, reader)
 		}()
 	}
 
@@ -92,7 +95,7 @@ func handleClientConnection(srv *server.Server, conn net.Conn, registry *command
 		srv.TransactionMgr.CleanupConnection(conn)
 	}()
 
-	scanner := bufio.NewScanner(conn)
+	scanner := bufio.NewReader(conn)
 
 	for {
 		if srv.IsConnectionClosed(conn) {
@@ -101,7 +104,7 @@ func handleClientConnection(srv *server.Server, conn net.Conn, registry *command
 		}
 
 		logger.Debug("Waiting for command from %s", conn.RemoteAddr())
-		args, ok := protocol.ReadArrayArguments(scanner, conn)
+		args, ok := protocol.ReadArrayArguments(scanner)
 		if !ok {
 			logger.Info("Connection closed or error reading from: %s", conn.RemoteAddr())
 			return
@@ -148,11 +151,11 @@ func handleClientConnection(srv *server.Server, conn net.Conn, registry *command
 	}
 }
 
-func handleMasterConnection(srv *server.Server) {
+func handleMasterConnection(srv *server.Server, reader *bufio.Reader) {
 	logger := logging.NewLogger("REPLICA")
 	logger.Info("Starting to handle commands from master")
 
-	scanner := bufio.NewScanner(srv.MasterConn)
+	// scanner := bufio.NewScanner(srv.MasterConn)
 
 	for {
 		if srv.IsConnectionClosed(srv.MasterConn) {
@@ -160,7 +163,7 @@ func handleMasterConnection(srv *server.Server) {
 			return
 		}
 
-		args, ok := protocol.ReadArrayArguments(scanner, srv.MasterConn)
+		args, ok := protocol.ReadArrayArguments(reader)
 		if !ok {
 			logger.Error("Connection to master lost or error reading")
 			return
@@ -204,6 +207,7 @@ func handleMasterConnection(srv *server.Server) {
 			}
 
 		case "REPLCONF":
+			fmt.Printf("REPLCONF COMMAND: %+v", commandBytes)
 			if len(args) >= 2 {
 				subcommand := strings.ToUpper(args[1])
 				switch subcommand {

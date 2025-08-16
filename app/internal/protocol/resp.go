@@ -3,6 +3,7 @@ package protocol
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"net"
 	"strconv"
 	"strings"
@@ -13,59 +14,67 @@ import (
 var logger = logging.NewLogger("PROTOCOL")
 
 // ReadArrayArguments reads RESP array arguments from a connection
-func ReadArrayArguments(scanner *bufio.Scanner, conn net.Conn) ([]string, bool) {
-	if !scanner.Scan() {
-		logger.Debug("Failed to scan array header")
+func ReadArrayArguments(reader *bufio.Reader) ([]string, bool) {
+	// Read array header: *<count>\r\n
+	line, err := reader.ReadString('\n')
+	if err != nil {
+		logger.Debug("failed to read array header: %v", err)
 		return nil, false
 	}
-
-	line := scanner.Text()
+	line = strings.TrimSpace(line)
 
 	if !strings.HasPrefix(line, "*") {
-		logger.Debug("Invalid array prefix, expected '*'")
+		logger.Debug("Invalid array prefix, expected '*', got: %s", line)
 		return nil, false
 	}
 
 	count, err := strconv.Atoi(line[1:])
 	if err != nil {
+		logger.Debug("invalid array length: %v", err)
 		return nil, false
 	}
 
 	args := make([]string, count)
+
 	for i := 0; i < count; i++ {
-		// Read bulk string length
-		if !scanner.Scan() {
+		// Read bulk string header: $<len>\r\n
+		lengthLine, err := reader.ReadString('\n')
+		if err != nil {
+			logger.Debug("failed to read bulk string length: %v", err)
 			return nil, false
 		}
-		lengthLine := scanner.Text()
+		lengthLine = strings.TrimSpace(lengthLine)
 
 		if !strings.HasPrefix(lengthLine, "$") {
+			logger.Debug("Invalid bulk string prefix, expected '$', got: %s", lengthLine)
 			return nil, false
 		}
 
 		length, err := strconv.Atoi(lengthLine[1:])
 		if err != nil {
+			logger.Debug("invalid bulk string length: %v", err)
 			return nil, false
 		}
 
-		// Read bulk string content
-		if !scanner.Scan() {
+		if length < 0 {
+			args[i] = "" // RESP null bulk string
+			continue
+		}
+
+		// Read <length> bytes of content
+		buf := make([]byte, length)
+		if _, err := io.ReadFull(reader, buf); err != nil {
+			logger.Debug("failed to read bulk string content: %v", err)
 			return nil, false
 		}
-		content := scanner.Text()
 
-		// Handle cases where content might be shorter than expected
-		if len(content) < length {
-			remaining := length - len(content)
-			buffer := make([]byte, remaining)
-			n, err := conn.Read(buffer)
-			if err != nil {
-				return nil, false
-			}
-			content += string(buffer[:n])
+		args[i] = string(buf)
+
+		// Read trailing \r\n
+		if _, err := reader.Discard(2); err != nil {
+			logger.Debug("failed to discard CRLF: %v", err)
+			return nil, false
 		}
-
-		args[i] = content
 	}
 
 	return args, true
