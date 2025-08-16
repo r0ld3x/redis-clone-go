@@ -29,8 +29,8 @@ func RPushAdd(key string, item string) (int, error) {
 	return len(slice), nil
 }
 
-func LRangeAdd(key string, start int, end int) ([]string, error) {
-	// logger := logging.NewLogger("LRANGE")
+func LRange(key string, start int, end int) ([]string, error) {
+	logger := logging.NewLogger("LRANGE")
 
 	val, found := DB.Load(key)
 	var slice []string
@@ -45,7 +45,7 @@ func LRangeAdd(key string, start int, end int) ([]string, error) {
 		return []string{}, nil
 	}
 	length := len(slice)
-
+	logger.Info("slice: %+v", slice)
 	if start < 0 {
 		test := length + start
 		if test < 0 {
@@ -71,4 +71,28 @@ func LRangeAdd(key string, start int, end int) ([]string, error) {
 		end = length - 1
 	}
 	return slice[start : end+1], nil
+}
+
+func LPush(key string, values string) (int, error) {
+	logger := logging.NewLogger("LPUSH")
+
+	val, found := DB.Load(key)
+	var slice []string
+
+	if found {
+		if s, ok := val.([]string); ok {
+			slice = s
+		} else {
+			return 0, errors.New("WRONGTYPE Operation against a key holding the wrong kind of value")
+		}
+	} else {
+		slice = []string{}
+	}
+
+	slice = append([]string{values}, slice...)
+
+	DB.Store(key, slice)
+
+	logger.Debug("LPUSH: Added item '%+v' to key '%s', new length: %d", values, key, len(slice))
+	return len(slice), nil
 }

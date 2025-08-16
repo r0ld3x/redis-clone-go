@@ -45,6 +45,41 @@ func (h *RPushHandler) Handle(srv *server.Server, clientConn net.Conn, args []st
 	return nil
 }
 
+// LPushHandler handles LPUSH commands
+type LPushHandler struct {
+	logger *logging.Logger
+}
+
+func (h *LPushHandler) Handle(srv *server.Server, clientConn net.Conn, args []string) error {
+	if h.logger == nil {
+		h.logger = logging.NewLogger("LPUSH")
+	}
+
+	if len(args) < 2 {
+		protocol.WriteError(clientConn, "ERR wrong number of arguments for 'LPUSH' command")
+		return nil
+	}
+
+	key := args[0]
+	values := args[1:]
+
+	totalLength := 0
+	for _, item := range values {
+		len, err := database.LPush(key, item)
+		if err != nil {
+			protocol.WriteError(clientConn, err.Error())
+			return nil
+		}
+		totalLength = len
+	}
+
+	// command := append([]string{"RPUSH", key}, values...)
+	// srv.ReplicateCommand(command)
+
+	protocol.WriteInteger(clientConn, totalLength)
+	return nil
+}
+
 type LRangeHandler struct {
 	logger *logging.Logger
 }
@@ -70,7 +105,7 @@ func (h *LRangeHandler) Handle(srv *server.Server, clientConn net.Conn, args []s
 		protocol.WriteError(clientConn, "ARGS should be a integer")
 		return nil
 	}
-	data, err := database.LRangeAdd(key, start, end)
+	data, err := database.LRange(key, start, end)
 	if err != nil {
 		protocol.WriteError(clientConn, err.Error())
 		return nil
