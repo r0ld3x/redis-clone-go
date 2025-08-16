@@ -8,7 +8,7 @@ import (
 	"github.com/r0ld3x/redis-clone-go/app/internal/logging"
 )
 
-type BlpopRequest struct {
+type BlPopRequest struct {
 	ListName   string
 	ResultChan chan []string
 	Timeout    time.Duration
