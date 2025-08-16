@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/r0ld3x/redis-clone-go/app/internal/logging"
 )
@@ -46,12 +47,29 @@ func LRangeAdd(key string, start int, end int) ([]string, error) {
 	}
 	length := len(slice)
 
+	if start < 0 {
+		test := length + start
+		if test < 0 {
+			start = 0
+		} else {
+			start = test
+		}
+	}
+
+	if end < 0 {
+		test := length + end
+		if test < 0 {
+			end = 0
+		} else {
+			end = test
+		}
+	}
+
 	if start >= length || start > end {
 		return []string{}, nil
 	}
 	if end >= length {
 		end = length - 1
 	}
-
 	return slice[start : end+1], nil
 }
