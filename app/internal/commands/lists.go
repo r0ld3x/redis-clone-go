@@ -213,27 +213,26 @@ func (h *BLPopHandler) Handle(srv *server.Server, clientConn net.Conn, args []st
 	}
 
 	key := args[0]
-	timeout, err := strconv.ParseFloat(args[1], 64)
+	timeoutSeconds, err := strconv.ParseFloat(args[1], 32)
 	if err != nil {
 		protocol.WriteError(clientConn, "ERR wrong number of arguments for 'BLPOP' command")
 		return nil
 	}
-	h.logger.Info("PRINT: %f", timeout)
-	req := database.BlpopRequest{
+	timeout := time.Duration(timeoutSeconds * float64(time.Second))
+	req := database.BlPopRequest{
 		ListName:   key,
 		ResultChan: make(chan []string, 1),
-		Timeout:    time.Duration(timeout) * time.Second,
+		Timeout:    timeout,
 	}
 	go func() {
 		ticker := time.NewTicker(100 * time.Millisecond)
 		defer ticker.Stop()
-
 		startTime := time.Now()
 		for {
 			val, found := database.DB.Load(req.ListName)
 			if found {
 				if slice, ok := val.([]string); ok && len(slice) > 0 {
-					element := slice
+					element := slice[0:1] // get only the first element as per LPOP
 					newSlice := slice[1:]
 					database.DB.Store(req.ListName, newSlice)
 					req.ResultChan <- element
@@ -242,11 +241,10 @@ func (h *BLPopHandler) Handle(srv *server.Server, clientConn net.Conn, args []st
 			}
 
 			if timeout != 0 && time.Since(startTime) > req.Timeout {
-				// Timeout reached, return
 				req.ResultChan <- []string{}
 				return
 			}
-			time.Sleep(50 * time.Millisecond)
+			<-ticker.C
 		}
 	}()
 
