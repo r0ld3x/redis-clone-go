@@ -30,6 +30,7 @@ const (
 	XRangeCommand   Command = "XRANGE"
 	XReadCommand    Command = "XREAD"
 	RPushCommand    Command = "RPUSH"
+	LRangeCommand   Command = "LRANGE"
 )
 
 // WriteCommands defines commands that modify data
@@ -85,4 +86,5 @@ func (r *Registry) RegisterAllHandlers() {
 	r.Register(XRangeCommand, &XRangeHandler{})
 	r.Register(XReadCommand, &XReadHandler{})
 	r.Register(RPushCommand, &RPushHandler{})
+	r.Register(LRangeCommand, &LRangeHandler{})
 }
