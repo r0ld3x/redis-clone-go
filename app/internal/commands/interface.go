@@ -34,6 +34,7 @@ const (
 	LPushCommand    Command = "LPUSH"
 	LLenCommand     Command = "LLEN"
 	LPopCommand     Command = "LPOP"
+	BLPopCommand    Command = "BLPOP"
 )
 
 // WriteCommands defines commands that modify data
@@ -93,4 +94,5 @@ func (r *Registry) RegisterAllHandlers() {
 	r.Register(LPushCommand, &LPushHandler{})
 	r.Register(LLenCommand, &LLenHandler{})
 	r.Register(LPopCommand, &LPopHandler{})
+	r.Register(BLPopCommand, &BLPopHandler{})
 }

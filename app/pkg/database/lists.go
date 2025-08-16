@@ -3,9 +3,16 @@ package database
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/r0ld3x/redis-clone-go/app/internal/logging"
 )
+
+type BlpopRequest struct {
+	ListName   string
+	ResultChan chan []string
+	Timeout    time.Duration
+}
 
 func RPushAdd(key string, item string) (int, error) {
 	logger := logging.NewLogger("RPUSH")
@@ -157,4 +164,8 @@ func RemoveNFromArray(key string, n int) ([]string, error) {
 	DB.Store(key, remaining)
 
 	return removedItems, nil
+}
+
+func BLPop(listNames []string, timeoutSeconds int) {
+
 }

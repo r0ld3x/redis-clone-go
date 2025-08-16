@@ -3,6 +3,7 @@ package commands
 import (
 	"net"
 	"strconv"
+	"time"
 
 	"github.com/r0ld3x/redis-clone-go/app/internal/logging"
 	"github.com/r0ld3x/redis-clone-go/app/internal/protocol"
@@ -180,6 +181,7 @@ func (h *LPopHandler) Handle(srv *server.Server, clientConn net.Conn, args []str
 		protocol.WriteError(clientConn, err.Error())
 		return nil
 	}
+
 	// command := append([]string{"RPUSH", strconv.Itoa(start), strconv.Itoa(end)})
 	// srv.ReplicateCommand(command)
 
@@ -192,8 +194,67 @@ func (h *LPopHandler) Handle(srv *server.Server, clientConn net.Conn, args []str
 	for _, v := range data {
 		str += v
 	}
-	// response := fmt.Sprintf("$%d\r\n%s", len(str), str)
-	// clientConn.Write([]byte(response))
 	protocol.WriteBulkString(clientConn, str)
+	return nil
+}
+
+type BLPopHandler struct {
+	logger *logging.Logger
+}
+
+func (h *BLPopHandler) Handle(srv *server.Server, clientConn net.Conn, args []string) error {
+	if h.logger == nil {
+		h.logger = logging.NewLogger("BLPOP")
+	}
+
+	if len(args) < 2 {
+		protocol.WriteError(clientConn, "ERR wrong number of arguments for 'BLPOP' command")
+		return nil
+	}
+
+	key := args[0]
+	timeout, err := strconv.Atoi(args[1])
+	if err != nil {
+		protocol.WriteError(clientConn, "ERR wrong number of arguments for 'BLPOP' command")
+		return nil
+	}
+	req := database.BlpopRequest{
+		ListName:   key,
+		ResultChan: make(chan []string, 1),
+		Timeout:    time.Duration(timeout) * time.Second,
+	}
+	go func() {
+		ticker := time.NewTicker(100 * time.Millisecond)
+		defer ticker.Stop()
+
+		startTime := time.Now()
+		for {
+			val, found := database.DB.Load(req.ListName)
+			if found {
+				if slice, ok := val.([]string); ok && len(slice) > 0 {
+					element := slice
+					newSlice := slice[1:]
+					database.DB.Store(req.ListName, newSlice)
+					req.ResultChan <- element
+					return
+				}
+			}
+
+			if timeout != 0 && time.Since(startTime) > req.Timeout {
+				// Timeout reached, return
+				req.ResultChan <- []string{}
+				return
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
+	}()
+
+	result := <-req.ResultChan
+	if result == nil {
+		clientConn.Write([]byte("$-1\r\n"))
+		return nil
+	}
+	combined := append([]string{req.ListName}, result...)
+	protocol.WriteArray(clientConn, combined)
 	return nil
 }
