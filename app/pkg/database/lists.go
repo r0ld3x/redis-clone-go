@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/r0ld3x/redis-clone-go/app/internal/logging"
 )
@@ -129,12 +130,27 @@ func RemoveNFromArray(key string, n int) ([]string, error) {
 	} else {
 		slice = []string{}
 	}
-	if (len(slice) == 0) || (n > len(slice)) {
+
+	length := len(slice)
+	if length == 0 {
 		return []string{}, nil
 	}
 
-	item, newslice := slice[0], slice[n:]
-	DB.Store(key, newslice)
+	toRemove := n + 1
 
-	return []string{item}, nil
+	if toRemove > length {
+		DB.Store(key, []string{})
+		return slice, nil
+	}
+
+	fmt.Printf("len(slice): %d, toRemove: %d\n", length, toRemove)
+	fmt.Printf("slice[:toRemove]: %+v\n", slice[:toRemove])
+	fmt.Printf("slice[toRemove:]: %+v\n", slice[toRemove:])
+
+	removedItems := slice[:toRemove]
+	remaining := slice[toRemove:]
+
+	DB.Store(key, remaining)
+
+	return removedItems, nil
 }
