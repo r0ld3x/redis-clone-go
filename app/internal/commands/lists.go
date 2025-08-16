@@ -213,11 +213,12 @@ func (h *BLPopHandler) Handle(srv *server.Server, clientConn net.Conn, args []st
 	}
 
 	key := args[0]
-	timeout, err := strconv.Atoi(args[1])
+	timeout, err := strconv.ParseFloat(args[1], 64)
 	if err != nil {
 		protocol.WriteError(clientConn, "ERR wrong number of arguments for 'BLPOP' command")
 		return nil
 	}
+	h.logger.Info("PRINT: %f", timeout)
 	req := database.BlpopRequest{
 		ListName:   key,
 		ResultChan: make(chan []string, 1),
@@ -250,7 +251,7 @@ func (h *BLPopHandler) Handle(srv *server.Server, clientConn net.Conn, args []st
 	}()
 
 	result := <-req.ResultChan
-	if result == nil {
+	if len(result) == 0 {
 		clientConn.Write([]byte("$-1\r\n"))
 		return nil
 	}
