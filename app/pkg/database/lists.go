@@ -96,3 +96,21 @@ func LPush(key string, values string) (int, error) {
 	logger.Debug("LPUSH: Added item '%+v' to key '%s', new length: %d", values, key, len(slice))
 	return len(slice), nil
 }
+
+func GetArrayLength(key string) (int, error) {
+
+	val, found := DB.Load(key)
+	var slice []string
+
+	if found {
+		if s, ok := val.([]string); ok {
+			slice = s
+		} else {
+			return 0, errors.New("WRONGTYPE Operation against a key holding the wrong kind of value")
+		}
+	} else {
+		slice = []string{}
+	}
+
+	return len(slice), nil
+}

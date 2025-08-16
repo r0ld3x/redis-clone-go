@@ -86,6 +86,33 @@ type LRangeHandler struct {
 
 func (h *LRangeHandler) Handle(srv *server.Server, clientConn net.Conn, args []string) error {
 	if h.logger == nil {
+		h.logger = logging.NewLogger("LLEN")
+	}
+
+	if len(args) > 1 {
+		protocol.WriteError(clientConn, "ERR wrong number of arguments for 'LLEN' command")
+		return nil
+	}
+
+	key := args[0]
+	data, err := database.GetArrayLength(key)
+	if err != nil {
+		protocol.WriteError(clientConn, err.Error())
+		return nil
+	}
+	// command := append([]string{"RPUSH", strconv.Itoa(start), strconv.Itoa(end)})
+	// srv.ReplicateCommand(command)
+
+	protocol.WriteInteger(clientConn, data)
+	return nil
+}
+
+type LLenHandler struct {
+	logger *logging.Logger
+}
+
+func (h *LLenHandler) Handle(srv *server.Server, clientConn net.Conn, args []string) error {
+	if h.logger == nil {
 		h.logger = logging.NewLogger("LRANGE")
 	}
 
