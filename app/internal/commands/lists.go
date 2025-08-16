@@ -166,7 +166,10 @@ func (h *LPopHandler) Handle(srv *server.Server, clientConn net.Conn, args []str
 	}
 	// command := append([]string{"RPUSH", strconv.Itoa(start), strconv.Itoa(end)})
 	// srv.ReplicateCommand(command)
-
-	protocol.WriteArray(clientConn, data)
+	str := ""
+	for _, v := range data {
+		str += v
+	}
+	protocol.WriteBulkString(clientConn, str)
 	return nil
 }
